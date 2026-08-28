@@ -1,0 +1,82 @@
+{
+  "site_name": "Zamunda",
+  "base_url": "https://zamunda.rip",
+  "api_path": "/api/torrents",
+  "query_param": "q",
+  "offset_param": "offset",
+  "page_size": 50,
+
+  "category_flags": {
+    "bg_audio": false,
+    "bg_movies": false,
+    "bg_arena": false,
+    "zelka": false
+  },
+
+  "id_scrape_flags": {
+    "bg_audio": true,
+    "bg_movies": true,
+    "bg_arena": true,
+    "zelka": true
+  },
+
+  "categories": [
+    {
+      "label": "с българско аудио  (bg_audio)",
+      "bg_audio": true,
+      "bg_movies": false,
+      "bg_arena": false,
+      "zelka": false
+    },
+    {
+      "label": "български филми  (bg_movies)",
+      "bg_audio": false,
+      "bg_movies": true,
+      "bg_arena": false,
+      "zelka": false
+    },
+    {
+      "label": "българско аудио от Arena  (bg_arena)",
+      "bg_audio": false,
+      "bg_movies": false,
+      "bg_arena": true,
+      "zelka": false
+    },
+    {
+      "label": "видеотека от Zelka  (zelka)",
+      "bg_audio": false,
+      "bg_movies": false,
+      "bg_arena": false,
+      "zelka": true
+    }
+  ],
+
+  "field_map": {
+    "external_id": "external_id",
+    "title": "title",
+    "category": "category",
+    "size": "size",
+    "description": "description",
+    "source": "source",
+    "is_bgaudio": "is_bgaudio",
+    "magnet": "link"
+  },
+
+  "response_wrapper_keys": ["torrents", "results", "data", "items"],
+
+  "id_range": {
+    "start": 100000,
+    "end": 860000
+  },
+
+  "extra_seeds": [
+    "2015", "2016", "2017", "2018", "2019",
+    "2020", "2021", "2022", "2023", "2024", "2025",
+    "hd", "4k", "720p", "1080p", "bluray", "bdrip",
+    "dvdrip", "webrip", "x264", "x265", "mp4",
+    "movie", "series", "season", "episode",
+    "documentary", "sport", "music", "game", "software", "tv", "bg",
+    "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "10", "11", "12", "13", "20", "21"
+  ]
+}
