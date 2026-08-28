@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}Zamunda Archive — Browse{% endblock %}
+{% block content %}
+<div class="container">
+
+  <!-- Header + stats -->
+  <div class="page-header" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+    <div>
+      <h1 data-i18n="browse_title">Torrent Archive</h1>
+      <p id="stats-line" style="color:var(--muted);font-size:0.83rem;font-family:var(--mono);">
+        Loading...
+      </p>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <select id="sort-select" style="width:auto;" onchange="resetAndSearch()">
+        <option value="id_desc" data-i18n-opt="sort_newest">Newest first</option>
+        <option value="title_asc" data-i18n-opt="sort_title">Title A→Z</option>
+        <option value="size_desc" data-i18n-opt="sort_size">Largest first</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="card" style="margin-bottom:1rem;padding:1rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:0.7rem;align-items:end;flex-wrap:wrap;">
+      <div class="form-group" style="margin:0;">
+        <label data-i18n="filter_search">Search title or paste ID</label>
+        <input type="text" id="search-input" data-i18n-placeholder="filter_search_ph"
+               placeholder="Type title or paste torrent ID…"
+               oninput="debounceSearch()" onkeydown="if(event.key==='Enter')doSearch()">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label data-i18n="filter_category">Category</label>
+        <select id="cat-select" onchange="resetAndSearch()">
+          <option value="" data-i18n="filter_all_cats">All categories</option>
+          {% for c in categories %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label data-i18n="filter_bgaudio">BG Audio</label>
+        <select id="bg-select" onchange="resetAndSearch()" style="width:auto;">
+          <option value="" data-i18n="filter_all">All</option>
+          <option value="1" data-i18n="filter_only_bg">BG Audio only</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost" onclick="clearFilters()" data-i18n="filter_clear">Clear</button>
+    </div>
+  </div>
+
+  <!-- Results count -->
+  <div id="results-info" style="font-size:0.82rem;color:var(--muted);font-family:var(--mono);margin-bottom:0.7rem;"></div>
+
+  <!-- Table -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table id="torrent-table" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);background:var(--surface2);">
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;white-space:nowrap;" data-i18n="th_id">ID</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;" data-i18n="th_title">Title</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;white-space:nowrap;" data-i18n="th_category">Category</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;white-space:nowrap;" data-i18n="th_size">Size</th>
+            <th style="padding:0.7rem 1rem;text-align:center;font-size:0.78rem;color:var(--muted);font-weight:600;white-space:nowrap;" data-i18n="th_bg">BG</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;white-space:nowrap;" data-i18n="th_source">Source</th>
+          </tr>
+        </thead>
+        <tbody id="torrent-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div id="pagination" style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;"></div>
+
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-backdrop" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">—</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+    <div style="display:flex;gap:0.6rem;margin-top:1.2rem;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="modal-magnet-btn" onclick="openMagnet()" data-i18n="btn_open_magnet">Open Magnet</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyMagnet()" data-i18n="btn_copy_magnet">Copy Magnet</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()" data-i18n="btn_close">Close</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Extra i18n strings for browse page
+Object.assign(STRINGS.en, {
+  browse_title:"Torrent Archive",
+  stats_line:"{0} torrents · {1} categories · {2} BG Audio",
+  sort_newest:"Newest first", sort_title:"Title A→Z", sort_size:"Largest first",
+  filter_search:"Search title or paste ID",
+  filter_search_ph:"Type title or paste torrent ID…",
+  filter_category:"Category", filter_all_cats:"All categories",
+  filter_bgaudio:"BG Audio", filter_all:"All", filter_only_bg:"BG Audio only",
+  filter_clear:"Clear",
+  results_info:"Showing {0}–{1} of {2} results",
+  th_id:"ID", th_title:"Title", th_category:"Category",
+  th_size:"Size", th_bg:"BG", th_source:"Source",
+  btn_open_magnet:"Open Magnet", btn_copy_magnet:"Copy Magnet", btn_close:"Close",
+  lbl_id:"ID", lbl_size:"Size", lbl_category:"Category",
+  lbl_source:"Source", lbl_bgaudio:"BG Audio", lbl_description:"Description",
+  lbl_no_magnet:"No magnet link available",
+  yes:"Yes", no:"No",
+  no_results:"No torrents found.",
+  page_of:"Page {0} of {1}",
+});
+Object.assign(STRINGS.bg, {
+  browse_title:"Торент Архив",
+  stats_line:"{0} торента · {1} категории · {2} БГ Аудио",
+  sort_newest:"Най-нови", sort_title:"Заглавие А→Я", sort_size:"Най-големи",
+  filter_search:"Търсене или ID",
+  filter_search_ph:"Въведете заглавие или ID…",
+  filter_category:"Категория", filter_all_cats:"Всички категории",
+  filter_bgaudio:"БГ Аудио", filter_all:"Всички", filter_only_bg:"Само БГ Аудио",
+  filter_clear:"Изчисти",
+  results_info:"Показани {0}–{1} от {2} резултата",
+  th_id:"ID", th_title:"Заглавие", th_category:"Категория",
+  th_size:"Размер", th_bg:"БГ", th_source:"Източник",
+  btn_open_magnet:"Отвори Магнит", btn_copy_magnet:"Копирай Магнит", btn_close:"Затвори",
+  lbl_id:"ID", lbl_size:"Размер", lbl_category:"Категория",
+  lbl_source:"Източник", lbl_bgaudio:"БГ Аудио", lbl_description:"Описание",
+  lbl_no_magnet:"Няма магнит линк",
+  yes:"Да", no:"Не",
+  no_results:"Няма намерени торенти.",
+  page_of:"Страница {0} от {1}",
+});
+applyLang(currentLang);
+
+let currentPage = 1;
+let currentMagnet = "";
+let debounceTimer;
+
+// Load stats
+fetch("/api/stats").then(r=>r.json()).then(d=>{
+  const s = STRINGS[currentLang];
+  document.getElementById("stats-line").textContent =
+    (s.stats_line||"{0} torrents")
+      .replace("{0}", d.total.toLocaleString())
+      .replace("{1}", d.categories)
+      .replace("{2}", d.bg_audio.toLocaleString());
+});
+
+function debounceSearch() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => resetAndSearch(), 350);
+}
+function resetAndSearch() { currentPage = 1; doSearch(); }
+function clearFilters() {
+  document.getElementById("search-input").value = "";
+  document.getElementById("cat-select").value = "";
+  document.getElementById("bg-select").value = "";
+  document.getElementById("sort-select").value = "id_desc";
+  resetAndSearch();
+}
+
+async function doSearch() {
+  const q    = document.getElementById("search-input").value.trim();
+  const cat  = document.getElementById("cat-select").value;
+  const bg   = document.getElementById("bg-select").value;
+  const sort = document.getElementById("sort-select").value;
+  const params = new URLSearchParams({
+    q, category: cat, bg_audio: bg, sort, page: currentPage
+  });
+  const res  = await fetch("/api/torrents?" + params);
+  const data = await res.json();
+  renderTable(data);
+  renderPagination(data);
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById("torrent-tbody");
+  const s = STRINGS[currentLang];
+  const info = document.getElementById("results-info");
+
+  if (!data.torrents.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted);">${s.no_results||"No results."}</td></tr>`;
+    info.textContent = "";
+    return;
+  }
+
+  const start = (data.page - 1) * data.per_page + 1;
+  const end   = Math.min(data.page * data.per_page, data.total);
+  info.textContent = (s.results_info||"Showing {0}–{1} of {2}")
+    .replace("{0}", start.toLocaleString())
+    .replace("{1}", end.toLocaleString())
+    .replace("{2}", data.total.toLocaleString());
+
+  tbody.innerHTML = data.torrents.map(t => {
+    const bg = t.is_bgaudio
+      ? `<span class="badge badge-green">${s.yes||"Yes"}</span>`
+      : `<span class="badge badge-gray">${s.no||"No"}</span>`;
+    const title = escHtml(t.title || "—");
+    const cat   = t.category ? `<span class="badge badge-yellow">${escHtml(String(t.category))}</span>` : "—";
+    const size  = escHtml(t.size ? String(t.size) : "—");
+    const src   = escHtml(t.source ? String(t.source) : "—");
+    return `<tr class="torrent-row" onclick='openDetail(${JSON.stringify(t)})'
+              style="cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;"
+              onmouseenter="this.style.background='var(--surface2)'"
+              onmouseleave="this.style.background=''">
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.78rem;color:var(--muted);white-space:nowrap;">${t.external_id}</td>
+      <td style="padding:0.6rem 1rem;font-size:0.85rem;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${title}">${title}</td>
+      <td style="padding:0.6rem 1rem;white-space:nowrap;">${cat}</td>
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.78rem;white-space:nowrap;">${size}</td>
+      <td style="padding:0.6rem 1rem;text-align:center;">${bg}</td>
+      <td style="padding:0.6rem 1rem;font-size:0.78rem;color:var(--muted);white-space:nowrap;">${src}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderPagination(data) {
+  const pg  = document.getElementById("pagination");
+  const s   = STRINGS[currentLang];
+  if (data.pages <= 1) { pg.innerHTML = ""; return; }
+
+  let html = "";
+  const prev = currentPage > 1;
+  const next = currentPage < data.pages;
+
+  html += `<button class="btn btn-ghost btn-sm" ${prev?'':'disabled'} onclick="goPage(${currentPage-1})">←</button>`;
+
+  // Show window of pages
+  const win = 5;
+  let lo = Math.max(1, currentPage - Math.floor(win/2));
+  let hi = Math.min(data.pages, lo + win - 1);
+  lo     = Math.max(1, hi - win + 1);
+
+  if (lo > 1) html += `<button class="btn btn-ghost btn-sm" onclick="goPage(1)">1</button>${lo>2?'<span style="color:var(--muted);padding:0 4px">…</span>':''}`;
+  for (let i = lo; i <= hi; i++) {
+    html += `<button class="btn ${i===currentPage?'btn-primary':'btn-ghost'} btn-sm" onclick="goPage(${i})">${i}</button>`;
+  }
+  if (hi < data.pages) html += `${hi<data.pages-1?'<span style="color:var(--muted);padding:0 4px">…</span>':''}<button class="btn btn-ghost btn-sm" onclick="goPage(${data.pages})">${data.pages}</button>`;
+
+  html += `<button class="btn btn-ghost btn-sm" ${next?'':'disabled'} onclick="goPage(${currentPage+1})">→</button>`;
+  html += `<span style="font-size:0.78rem;color:var(--muted);font-family:var(--mono);padding:0.3rem 0.5rem;">${(s.page_of||"Page {0} of {1}").replace("{0}",currentPage).replace("{1}",data.pages)}</span>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) { currentPage = p; doSearch(); window.scrollTo(0,0); }
+
+function openDetail(t) {
+  const s = STRINGS[currentLang];
+  document.getElementById("modal-title").textContent = t.title || "—";
+  currentMagnet = t.magnet || "";
+
+  const rows = [
+    [s.lbl_id||"ID",          `<span style="font-family:var(--mono)">${t.external_id}</span>`],
+    [s.lbl_category||"Cat",   t.category ? `<span class="badge badge-yellow">${escHtml(String(t.category))}</span>` : "—"],
+    [s.lbl_size||"Size",      escHtml(t.size ? String(t.size) : "—")],
+    [s.lbl_source||"Source",  escHtml(t.source || "—")],
+    [s.lbl_bgaudio||"BG",     t.is_bgaudio ? `<span class="badge badge-green">${s.yes||"Yes"}</span>` : `<span class="badge badge-gray">${s.no||"No"}</span>`],
+  ];
+
+  let html = `<table style="width:100%;border-collapse:collapse;margin-bottom:1rem;">`;
+  rows.forEach(([label, val]) => {
+    html += `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.5rem 0.7rem;font-size:0.78rem;font-weight:600;color:var(--muted);white-space:nowrap;width:110px;">${label}</td>
+      <td style="padding:0.5rem 0.7rem;font-size:0.85rem;">${val}</td>
+    </tr>`;
+  });
+  html += `</table>`;
+
+  if (t.description) {
+    html += `<div style="margin-bottom:0.8rem;">
+      <div style="font-size:0.78rem;font-weight:600;color:var(--muted);margin-bottom:0.3rem;">${s.lbl_description||"Description"}</div>
+      <div style="font-size:0.83rem;line-height:1.6;background:var(--surface2);border-radius:6px;padding:0.7rem;max-height:150px;overflow-y:auto;">${escHtml(t.description)}</div>
+    </div>`;
+  }
+
+  if (t.magnet) {
+    html += `<div style="background:var(--surface2);border-radius:6px;padding:0.6rem;font-family:var(--mono);font-size:0.72rem;color:var(--muted);word-break:break-all;max-height:70px;overflow-y:auto;">${escHtml(t.magnet)}</div>`;
+  } else {
+    html += `<div style="color:var(--muted);font-size:0.82rem;">${s.lbl_no_magnet||"No magnet link available"}</div>`;
+  }
+
+  document.getElementById("modal-body").innerHTML = html;
+  document.getElementById("modal-magnet-btn").disabled = !t.magnet;
+  document.getElementById("detail-modal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("detail-modal").classList.remove("open");
+}
+
+function openMagnet() {
+  if (currentMagnet) window.location.href = currentMagnet;
+}
+function copyMagnet() {
+  if (!currentMagnet) return;
+  navigator.clipboard.writeText(currentMagnet).then(() => showToast("Magnet copied!"));
+}
+
+document.getElementById("detail-modal").addEventListener("click", function(e){
+  if (e.target === this) closeModal();
+});
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// Initial load
+doSearch();
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Register — Zamunda Archive{% endblock %}
+{% block content %}
+<div style="min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;padding:1rem;">
+  <div style="width:min(380px,100%);">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="font-size:2rem;font-weight:800;color:var(--accent);">ZArchive</div>
+      <p style="color:var(--muted);font-size:0.85rem;margin-top:0.3rem;" data-i18n="reg_subtitle">Create a new account</p>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label data-i18n="lbl_username">Username</label>
+        <input type="text" id="username" autocomplete="username" autofocus>
+        <span style="font-size:0.75rem;color:var(--muted);" data-i18n="username_hint">Minimum 3 characters</span>
+      </div>
+      <div class="form-group">
+        <label data-i18n="lbl_password">Password</label>
+        <input type="password" id="password" autocomplete="new-password">
+        <span style="font-size:0.75rem;color:var(--muted);" data-i18n="password_hint">Minimum 6 characters</span>
+      </div>
+      <div class="form-group">
+        <label data-i18n="lbl_confirm">Confirm Password</label>
+        <input type="password" id="confirm" autocomplete="new-password"
+               onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+      <div id="reg-error" style="color:var(--danger);font-size:0.82rem;margin-bottom:0.8rem;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="doRegister()" data-i18n="btn_register">Create Account</button>
+      <p style="text-align:center;margin-top:1rem;font-size:0.82rem;color:var(--muted);">
+        <span data-i18n="have_account">Already have an account?</span>
+        <a href="/login" data-i18n="login_link">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+Object.assign(STRINGS.en, {
+  reg_subtitle:"Create a new account",
+  lbl_username:"Username", lbl_password:"Password", lbl_confirm:"Confirm Password",
+  username_hint:"Minimum 3 characters", password_hint:"Minimum 6 characters",
+  btn_register:"Create Account",
+  have_account:"Already have an account?", login_link:"Sign in",
+  err_mismatch:"Passwords do not match",
+});
+Object.assign(STRINGS.bg, {
+  reg_subtitle:"Създайте нов профил",
+  lbl_username:"Потребителско име", lbl_password:"Парола", lbl_confirm:"Потвърди парола",
+  username_hint:"Минимум 3 символа", password_hint:"Минимум 6 символа",
+  btn_register:"Създай профил",
+  have_account:"Вече имате профил?", login_link:"Влезте",
+  err_mismatch:"Паролите не съвпадат",
+});
+applyLang(currentLang);
+
+async function doRegister() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const confirm  = document.getElementById("confirm").value;
+  const err      = document.getElementById("reg-error");
+  const s        = STRINGS[currentLang];
+  err.style.display = "none";
+
+  if (password !== confirm) {
+    err.textContent = s.err_mismatch || "Passwords do not match";
+    err.style.display = "block";
+    return;
+  }
+  const res  = await fetch("/api/register", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username, password})
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    err.textContent   = data.error;
+    err.style.display = "block";
+    return;
+  }
+  location.href = "/";
+}
+</script>
+{% endblock %}

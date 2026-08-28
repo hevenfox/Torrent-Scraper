@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Login — Zamunda Archive{% endblock %}
+{% block content %}
+<div style="min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;padding:1rem;">
+  <div style="width:min(380px,100%);">
+    <div style="text-align:center;margin-bottom:2rem;">
+      <div style="font-size:2rem;font-weight:800;color:var(--accent);">ZArchive</div>
+      <p style="color:var(--muted);font-size:0.85rem;margin-top:0.3rem;" data-i18n="login_subtitle">Sign in to your account</p>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label data-i18n="lbl_username">Username</label>
+        <input type="text" id="username" autocomplete="username" autofocus>
+      </div>
+      <div class="form-group">
+        <label data-i18n="lbl_password">Password</label>
+        <input type="password" id="password" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="login-error" style="color:var(--danger);font-size:0.82rem;margin-bottom:0.8rem;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="doLogin()" data-i18n="btn_login">Sign In</button>
+      <p style="text-align:center;margin-top:1rem;font-size:0.82rem;color:var(--muted);">
+        <span data-i18n="no_account">No account?</span>
+        <a href="/register" data-i18n="register_link">Register here</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+Object.assign(STRINGS.en, {
+  login_subtitle:"Sign in to your account",
+  lbl_username:"Username", lbl_password:"Password",
+  btn_login:"Sign In",
+  no_account:"No account?", register_link:"Register here",
+});
+Object.assign(STRINGS.bg, {
+  login_subtitle:"Влезте в профила си",
+  lbl_username:"Потребителско име", lbl_password:"Парола",
+  btn_login:"Вход",
+  no_account:"Нямате профил?", register_link:"Регистрирайте се",
+});
+applyLang(currentLang);
+
+async function doLogin() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const err      = document.getElementById("login-error");
+  err.style.display = "none";
+
+  const res  = await fetch("/api/login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username, password})
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    err.textContent    = data.error;
+    err.style.display  = "block";
+    return;
+  }
+  // Sync lang/theme from server prefs
+  if (data.language) { localStorage.setItem("lang", data.language); }
+  if (data.theme)    { localStorage.setItem("theme", data.theme); }
+  location.href = "/";
+}
+</script>
+{% endblock %}

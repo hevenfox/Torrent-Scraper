@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+{% block title %}Admin — Zamunda Archive{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <h1 data-i18n="admin_title">Admin Panel</h1>
+    <p data-i18n="admin_sub">Edit torrents and manage users</p>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:0.4rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:0.6rem;">
+    <button class="btn btn-primary btn-sm" onclick="showTab('torrents')" id="tab-torrents" data-i18n="tab_torrents">Torrents</button>
+    <button class="btn btn-ghost btn-sm"  onclick="showTab('users')"    id="tab-users"    data-i18n="tab_users">Users</button>
+    <button class="btn btn-ghost btn-sm"  onclick="showTab('hidden')"   id="tab-hidden"   data-i18n="tab_hidden">Hidden</button>
+  </div>
+
+  <!-- Torrents tab -->
+  <div id="tab-content-torrents">
+    <div class="card" style="margin-bottom:1rem;padding:1rem;">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:0.7rem;align-items:end;">
+        <div class="form-group" style="margin:0;">
+          <label data-i18n="admin_search_label">Search torrent by title or ID</label>
+          <input type="text" id="admin-search" data-i18n-placeholder="admin_search_ph"
+                 placeholder="Title or ID…"
+                 oninput="debounceAdminSearch()" onkeydown="if(event.key==='Enter')adminSearch()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="adminSearch()" data-i18n="btn_search">Search</button>
+      </div>
+    </div>
+    <div id="admin-results"></div>
+  </div>
+
+  <!-- Hidden tab -->
+  <div id="tab-content-hidden" style="display:none;">
+    <!-- Hide a category -->
+    <div class="card" style="margin-bottom:1rem;padding:1rem;">
+      <h3 style="font-size:0.88rem;font-weight:700;margin-bottom:0.8rem;" data-i18n="hide_cat_title">Hide a Category</h3>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:0.7rem;align-items:end;">
+        <div class="form-group" style="margin:0;">
+          <label data-i18n="lbl_select_cat">Select category to hide</label>
+          <select id="hide-cat-select">
+            <option value="">— choose —</option>
+            {% for c in categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="hideCategory()" data-i18n="btn_hide_cat">Hide Category</button>
+      </div>
+    </div>
+    <!-- Currently hidden -->
+    <div class="card" style="padding:1rem;">
+      <h3 style="font-size:0.88rem;font-weight:700;margin-bottom:0.8rem;" data-i18n="currently_hidden">Currently Hidden</h3>
+      <div id="hidden-list">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Users tab -->
+  <div id="tab-content-users" style="display:none;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;" id="users-table">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);background:var(--surface2);">
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;">ID</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;" data-i18n="th_username">Username</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;" data-i18n="th_role">Role</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;" data-i18n="th_joined">Joined</th>
+            <th style="padding:0.7rem 1rem;text-align:left;font-size:0.78rem;color:var(--muted);font-weight:600;" data-i18n="th_actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Torrent Modal -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal" style="width:min(700px,95vw);">
+    <div class="modal-header">
+      <h2 data-i18n="edit_title">Edit Torrent</h2>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div id="edit-form-body"></div>
+    <div style="display:flex;gap:0.6rem;margin-top:1.2rem;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="saveEdit()" data-i18n="btn_save_edit">Save Changes</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetEdit()" data-i18n="btn_reset">Reset to Original</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeEditModal()" data-i18n="btn_cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal" style="width:min(420px,95vw);">
+    <div class="modal-header">
+      <h2 id="user-modal-title" data-i18n="edit_user_title">Edit User</h2>
+      <button class="modal-close" onclick="closeUserModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label data-i18n="lbl_new_pw">New Password</label>
+      <input type="password" id="user-new-pw" data-i18n-placeholder="optional_ph" placeholder="Leave blank to keep current">
+    </div>
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="user-is-admin" style="width:auto;margin-right:0.4rem;">
+        <span data-i18n="lbl_is_admin">Admin</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:0.6rem;margin-top:1rem;">
+      <button class="btn btn-primary btn-sm" onclick="saveUser()" data-i18n="btn_save_edit">Save</button>
+      <button class="btn btn-danger btn-sm"  onclick="deleteUser()" data-i18n="btn_delete_user">Delete User</button>
+      <button class="btn btn-ghost btn-sm"   onclick="closeUserModal()" data-i18n="btn_cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+Object.assign(STRINGS.en, {
+  admin_title:"Admin Panel", admin_sub:"Edit torrents and manage users",
+  tab_torrents:"Torrents", tab_users:"Users", tab_hidden:"Hidden",
+  admin_search_label:"Search torrent by title or ID",
+  admin_search_ph:"Title or ID…",
+  btn_search:"Search", btn_save_edit:"Save Changes",
+  btn_reset:"Reset to Original", btn_cancel:"Cancel",
+  btn_delete_user:"Delete User",
+  btn_hide:"Hide", btn_unhide:"Unhide",
+  btn_hide_cat:"Hide Category",
+  hide_cat_title:"Hide a Category",
+  lbl_select_cat:"Select category to hide",
+  currently_hidden:"Currently Hidden",
+  th_username:"Username", th_role:"Role", th_joined:"Joined", th_actions:"Actions",
+  edit_title:"Edit Torrent", edit_user_title:"Edit User",
+  lbl_new_pw:"New Password", optional_ph:"Leave blank to keep current",
+  lbl_is_admin:"Admin",
+  role_admin:"Admin", role_user:"User",
+  no_results_admin:"No torrents found. Try a different search.",
+  confirm_delete_user:"Delete this user?",
+  confirm_reset:"Remove all edits and restore original data?",
+  edit_saved:"Changes saved!", edit_reset:"Edits removed — original data restored.",
+  user_saved:"User updated!",
+  hidden_torrent:"Torrent", hidden_category:"Category",
+  no_hidden:"Nothing is hidden.",
+});
+Object.assign(STRINGS.bg, {
+  admin_title:"Админ панел", admin_sub:"Редактиране на торенти и управление на потребители",
+  tab_torrents:"Торенти", tab_users:"Потребители", tab_hidden:"Скрити",
+  admin_search_label:"Търси торент по заглавие или ID",
+  admin_search_ph:"Заглавие или ID…",
+  btn_search:"Търси", btn_save_edit:"Запази",
+  btn_reset:"Върни оригинала", btn_cancel:"Отказ",
+  btn_delete_user:"Изтрий потребител",
+  btn_hide:"Скрий", btn_unhide:"Покажи",
+  btn_hide_cat:"Скрий категория",
+  hide_cat_title:"Скриване на категория",
+  lbl_select_cat:"Изберете категория за скриване",
+  currently_hidden:"Скрити в момента",
+  th_username:"Потребител", th_role:"Роля", th_joined:"Регистриран", th_actions:"Действия",
+  edit_title:"Редактирай торент", edit_user_title:"Редактирай потребител",
+  lbl_new_pw:"Нова парола", optional_ph:"Оставете празно за да запазите",
+  lbl_is_admin:"Администратор",
+  role_admin:"Администратор", role_user:"Потребител",
+  no_results_admin:"Няма намерени торенти.",
+  confirm_delete_user:"Изтриване на потребителя?",
+  confirm_reset:"Премахнете редакциите и върнете оригиналните данни?",
+  edit_saved:"Промените са запазени!", edit_reset:"Редакциите са премахнати.",
+  user_saved:"Потребителят е обновен!",
+  hidden_torrent:"Торент", hidden_category:"Категория",
+  no_hidden:"Няма скрити елементи.",
+});
+applyLang(currentLang);
+
+let currentEditId = null;
+let currentUserId = null;
+let adminDebounce;
+
+function showTab(tab) {
+  ["torrents","users","hidden"].forEach(t => {
+    document.getElementById("tab-content-"+t).style.display = t===tab ? "" : "none";
+    const btn = document.getElementById("tab-"+t);
+    btn.className = t===tab ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm";
+  });
+  if (tab === "users")  loadUsers();
+  if (tab === "hidden") loadHidden();
+}
+
+function debounceAdminSearch() {
+  clearTimeout(adminDebounce);
+  adminDebounce = setTimeout(adminSearch, 350);
+}
+
+async function adminSearch() {
+  const q = document.getElementById("admin-search").value.trim();
+  if (!q) { document.getElementById("admin-results").innerHTML=""; return; }
+  const s = STRINGS[currentLang];
+  const params = new URLSearchParams({q, page:1});
+  const res  = await fetch("/api/torrents?" + params);
+  const data = await res.json();
+  const el   = document.getElementById("admin-results");
+  if (!data.torrents.length) {
+    el.innerHTML = `<p style="color:var(--muted);font-size:0.85rem;">${s.no_results_admin||"No results."}</p>`;
+    return;
+  }
+  el.innerHTML = `<div class="card" style="padding:0;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="border-bottom:1px solid var(--border);background:var(--surface2);">
+        <th style="padding:0.6rem 0.8rem;text-align:left;font-size:0.75rem;color:var(--muted);">ID</th>
+        <th style="padding:0.6rem 0.8rem;text-align:left;font-size:0.75rem;color:var(--muted);">Title</th>
+        <th style="padding:0.6rem 0.8rem;text-align:left;font-size:0.75rem;color:var(--muted);">Category</th>
+        <th style="padding:0.6rem 0.8rem;text-align:left;font-size:0.75rem;color:var(--muted);"></th>
+      </tr></thead>
+      <tbody>${data.torrents.map(t=>`
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.5rem 0.8rem;font-family:var(--mono);font-size:0.75rem;color:var(--muted);">${t.external_id}</td>
+          <td style="padding:0.5rem 0.8rem;font-size:0.82rem;max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.title||"—")}</td>
+          <td style="padding:0.5rem 0.8rem;font-size:0.78rem;color:var(--muted);">${escHtml(String(t.category||"—"))}</td>
+          <td style="padding:0.5rem 0.8rem;">
+            <button class="btn btn-ghost btn-sm" onclick='openEditModal(${JSON.stringify(t)})' data-i18n="btn_edit">Edit</button>
+            <button class="btn btn-danger btn-sm" style="margin-left:0.3rem;" onclick="hideTorrent('${t.external_id}', this)">${currentLang==="bg"?"Скрий":"Hide"}</button>
+          </td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`;
+  document.querySelectorAll("[data-i18n='btn_edit']").forEach(b=>b.textContent=currentLang==="bg"?"Редактирай":"Edit");
+}
+
+function openEditModal(t) {
+  currentEditId = t.external_id;
+  const fields = [
+    {key:"title",      label:"Title / Заглавие",     type:"text"},
+    {key:"category",   label:"Category / Категория", type:"text"},
+    {key:"size",       label:"Size / Размер",         type:"text"},
+    {key:"source",     label:"Source / Източник",    type:"text"},
+    {key:"description",label:"Description / Описание",type:"textarea"},
+    {key:"magnet",     label:"Magnet link",           type:"textarea"},
+  ];
+  let html = "";
+  fields.forEach(f => {
+    const val = escHtml(t[f.key] != null ? String(t[f.key]) : "");
+    if (f.type === "textarea") {
+      html += `<div class="form-group">
+        <label>${f.label}</label>
+        <textarea id="edit-${f.key}" rows="3" style="resize:vertical;">${val}</textarea>
+      </div>`;
+    } else {
+      html += `<div class="form-group">
+        <label>${f.label}</label>
+        <input type="text" id="edit-${f.key}" value="${val}">
+      </div>`;
+    }
+  });
+  html += `<div class="form-group">
+    <label>
+      <input type="checkbox" id="edit-is_bgaudio" style="width:auto;margin-right:0.4rem;" ${t.is_bgaudio?"checked":""}>
+      BG Audio
+    </label>
+  </div>`;
+  document.getElementById("edit-form-body").innerHTML = html;
+  document.getElementById("edit-modal").classList.add("open");
+}
+
+function closeEditModal() {
+  document.getElementById("edit-modal").classList.remove("open");
+  currentEditId = null;
+}
+
+async function saveEdit() {
+  if (!currentEditId) return;
+  const s = STRINGS[currentLang];
+  const payload = {
+    title:       document.getElementById("edit-title").value,
+    category:    document.getElementById("edit-category").value,
+    size:        document.getElementById("edit-size").value,
+    source:      document.getElementById("edit-source").value,
+    description: document.getElementById("edit-description").value,
+    magnet:      document.getElementById("edit-magnet").value,
+    is_bgaudio:  document.getElementById("edit-is_bgaudio").checked,
+  };
+  const res = await fetch(`/api/admin/torrent/${currentEditId}`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    showToast(s.edit_saved || "Saved!");
+    closeEditModal();
+  }
+}
+
+async function resetEdit() {
+  if (!currentEditId) return;
+  const s = STRINGS[currentLang];
+  if (!confirm(s.confirm_reset || "Reset to original?")) return;
+  const res = await fetch(`/api/admin/torrent/${currentEditId}`, {method:"DELETE"});
+  if (res.ok) {
+    showToast(s.edit_reset || "Reset done.");
+    closeEditModal();
+  }
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  const res  = await fetch("/api/admin/users");
+  const data = await res.json();
+  const s    = STRINGS[currentLang];
+  const tbody = document.getElementById("users-tbody");
+  tbody.innerHTML = data.map(u => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:0.6rem 1rem;font-family:var(--mono);font-size:0.78rem;color:var(--muted);">${u.id}</td>
+      <td style="padding:0.6rem 1rem;font-size:0.85rem;font-weight:600;">${escHtml(u.username)}</td>
+      <td style="padding:0.6rem 1rem;">
+        ${u.is_admin
+          ? `<span class="badge badge-yellow">${s.role_admin||"Admin"}</span>`
+          : `<span class="badge badge-gray">${s.role_user||"User"}</span>`}
+      </td>
+      <td style="padding:0.6rem 1rem;font-size:0.78rem;color:var(--muted);font-family:var(--mono);">${u.created}</td>
+      <td style="padding:0.6rem 1rem;">
+        <button class="btn btn-ghost btn-sm" onclick="openUserModal(${u.id}, '${escHtml(u.username)}', ${u.is_admin})">${currentLang==="bg"?"Редактирай":"Edit"}</button>
+      </td>
+    </tr>`).join("");
+}
+
+function openUserModal(uid, username, isAdmin) {
+  currentUserId = uid;
+  document.getElementById("user-modal-title").textContent =
+    (STRINGS[currentLang].edit_user_title||"Edit User") + " — " + username;
+  document.getElementById("user-new-pw").value = "";
+  document.getElementById("user-is-admin").checked = !!isAdmin;
+  document.getElementById("user-modal").classList.add("open");
+}
+
+function closeUserModal() {
+  document.getElementById("user-modal").classList.remove("open");
+  currentUserId = null;
+}
+
+async function saveUser() {
+  if (!currentUserId) return;
+  const s  = STRINGS[currentLang];
+  const pw = document.getElementById("user-new-pw").value;
+  const ia = document.getElementById("user-is-admin").checked;
+  const payload = {is_admin: ia};
+  if (pw) payload.password = pw;
+  const res = await fetch(`/api/admin/user/${currentUserId}`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    showToast(s.user_saved||"User updated!");
+    closeUserModal();
+    loadUsers();
+  }
+}
+
+async function deleteUser() {
+  if (!currentUserId) return;
+  const s = STRINGS[currentLang];
+  if (!confirm(s.confirm_delete_user||"Delete user?")) return;
+  const res = await fetch(`/api/admin/user/${currentUserId}`, {method:"DELETE"});
+  if (res.ok) {
+    showToast("Deleted");
+    closeUserModal();
+    loadUsers();
+  } else {
+    const d = await res.json();
+    showToast(d.error||"Error", "error");
+  }
+}
+
+// ── Hide / Unhide ─────────────────────────────────────────────────────────────
+
+async function hideTorrent(eid, btn) {
+  const res = await fetch(`/api/admin/hide/torrent/${eid}`, {method:"POST"});
+  if (res.ok) {
+    btn.textContent = currentLang==="bg" ? "Скрито" : "Hidden";
+    btn.disabled = true;
+    showToast(currentLang==="bg" ? "Торентът е скрит" : "Torrent hidden");
+  }
+}
+
+async function unhideTorrent(eid) {
+  const res = await fetch(`/api/admin/hide/torrent/${eid}`, {method:"DELETE"});
+  if (res.ok) { showToast(currentLang==="bg" ? "Показан" : "Unhidden"); loadHidden(); }
+}
+
+async function hideCategory() {
+  const cat = document.getElementById("hide-cat-select").value;
+  if (!cat) return;
+  const res = await fetch("/api/admin/hide/category", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({category: cat})
+  });
+  if (res.ok) {
+    showToast(currentLang==="bg" ? `Категория "${cat}" е скрита` : `Category "${cat}" hidden`);
+    loadHidden();
+  }
+}
+
+async function unhideCategory(cat) {
+  const res = await fetch("/api/admin/hide/category", {
+    method:"DELETE",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({category: cat})
+  });
+  if (res.ok) { showToast(currentLang==="bg" ? "Показана" : "Unhidden"); loadHidden(); }
+}
+
+async function loadHidden() {
+  const s   = STRINGS[currentLang];
+  const res = await fetch("/api/admin/hidden");
+  const data = await res.json();
+  const el  = document.getElementById("hidden-list");
+
+  if (!data.torrents.length && !data.categories.length) {
+    el.innerHTML = `<p style="color:var(--muted);font-size:0.85rem;">${s.no_hidden||"Nothing hidden."}</p>`;
+    return;
+  }
+
+  let html = "";
+
+  if (data.categories.length) {
+    html += `<p style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:0.4rem;">${s.hidden_category||"Category"}</p>`;
+    html += data.categories.map(c => `
+      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0;border-bottom:1px solid var(--border);">
+        <span class="badge badge-yellow">${escHtml(c.category)}</span>
+        <span style="font-size:0.75rem;color:var(--muted);flex:1;">by ${escHtml(c.hidden_by||"—")} · ${c.hidden_at}</span>
+        <button class="btn btn-ghost btn-sm" onclick="unhideCategory('${escHtml(c.category)}')">${s.btn_unhide||"Unhide"}</button>
+      </div>`).join("");
+    html += "<br>";
+  }
+
+  if (data.torrents.length) {
+    html += `<p style="font-size:0.78rem;font-weight:700;color:var(--muted);margin-bottom:0.4rem;">${s.hidden_torrent||"Torrent"}</p>`;
+    html += data.torrents.map(t => `
+      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0;border-bottom:1px solid var(--border);">
+        <span style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);">${t.external_id}</span>
+        <span style="font-size:0.75rem;color:var(--muted);flex:1;">by ${escHtml(t.hidden_by||"—")} · ${t.hidden_at}</span>
+        <button class="btn btn-ghost btn-sm" onclick="unhideTorrent('${t.external_id}')">${s.btn_unhide||"Unhide"}</button>
+      </div>`).join("");
+  }
+
+  el.innerHTML = html;
+}
+
+// Close modals on backdrop click
+document.getElementById("edit-modal").addEventListener("click", function(e){ if(e.target===this) closeEditModal(); });
+document.getElementById("user-modal").addEventListener("click", function(e){ if(e.target===this) closeUserModal(); });
+
+function escHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+{% endblock %}

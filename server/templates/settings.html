@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Settings — Zamunda Archive{% endblock %}
+{% block content %}
+<div class="container" style="max-width:560px;">
+  <div class="page-header">
+    <h1 data-i18n="settings_title">Settings</h1>
+    <p data-i18n="settings_sub">Manage your preferences and account</p>
+  </div>
+
+  <!-- Appearance -->
+  <div class="card" style="margin-bottom:1rem;">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;" data-i18n="section_appearance">Appearance</h3>
+    <div class="form-group">
+      <label data-i18n="lbl_language">Language</label>
+      <select id="lang-select">
+        <option value="en">English</option>
+        <option value="bg">Български</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label data-i18n="lbl_theme">Theme</label>
+      <select id="theme-select">
+        <option value="dark" data-i18n-opt="theme_dark">Dark</option>
+        <option value="light" data-i18n-opt="theme_light">Light</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div class="card" style="margin-bottom:1rem;">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;" data-i18n="section_security">Security</h3>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;" data-i18n="pw_hint">Leave blank to keep your current password.</p>
+    <div class="form-group">
+      <label data-i18n="lbl_new_pw">New Password</label>
+      <input type="password" id="new-pw" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label data-i18n="lbl_confirm_pw">Confirm New Password</label>
+      <input type="password" id="confirm-pw" autocomplete="new-password">
+    </div>
+  </div>
+
+  <div id="settings-error" style="color:var(--danger);font-size:0.82rem;margin-bottom:0.8rem;display:none;"></div>
+  <div style="display:flex;gap:0.6rem;">
+    <button class="btn btn-primary" onclick="saveSettings()" data-i18n="btn_save">Save Changes</button>
+    <button class="btn btn-ghost" onclick="location.href='/'" data-i18n="btn_cancel">Cancel</button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+Object.assign(STRINGS.en, {
+  settings_title:"Settings", settings_sub:"Manage your preferences and account",
+  section_appearance:"Appearance", section_security:"Security",
+  lbl_language:"Language", lbl_theme:"Theme",
+  theme_dark:"Dark", theme_light:"Light",
+  pw_hint:"Leave blank to keep your current password.",
+  lbl_new_pw:"New Password", lbl_confirm_pw:"Confirm New Password",
+  btn_save:"Save Changes", btn_cancel:"Cancel",
+  err_mismatch:"Passwords do not match",
+  saved:"Settings saved!",
+});
+Object.assign(STRINGS.bg, {
+  settings_title:"Настройки", settings_sub:"Управлявайте предпочитанията си",
+  section_appearance:"Облик", section_security:"Сигурност",
+  lbl_language:"Език", lbl_theme:"Тема",
+  theme_dark:"Тъмна", theme_light:"Светла",
+  pw_hint:"Оставете празно за да запазите паролата си.",
+  lbl_new_pw:"Нова парола", lbl_confirm_pw:"Потвърди нова парола",
+  btn_save:"Запази", btn_cancel:"Отказ",
+  err_mismatch:"Паролите не съвпадат",
+  saved:"Настройките са запазени!",
+});
+applyLang(currentLang);
+
+// Pre-fill current values
+document.getElementById("lang-select").value = currentLang;
+document.getElementById("theme-select").value = currentTheme;
+
+// Live preview
+document.getElementById("lang-select").addEventListener("change", function(){
+  applyLang(this.value);
+});
+document.getElementById("theme-select").addEventListener("change", function(){
+  applyTheme(this.value);
+});
+
+async function saveSettings() {
+  const language   = document.getElementById("lang-select").value;
+  const theme      = document.getElementById("theme-select").value;
+  const new_pw     = document.getElementById("new-pw").value;
+  const confirm_pw = document.getElementById("confirm-pw").value;
+  const err        = document.getElementById("settings-error");
+  const s          = STRINGS[language];
+  err.style.display = "none";
+
+  if (new_pw && new_pw !== confirm_pw) {
+    err.textContent   = s.err_mismatch || "Passwords do not match";
+    err.style.display = "block";
+    return;
+  }
+  const res  = await fetch("/api/settings", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({language, theme, new_password: new_pw})
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    err.textContent   = data.error;
+    err.style.display = "block";
+    return;
+  }
+  applyLang(language);
+  applyTheme(theme);
+  showToast(s.saved || "Settings saved!");
+}
+</script>
+{% endblock %}
