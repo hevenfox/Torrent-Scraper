@@ -1,4 +1,4 @@
-## Torrent Site Scraper (config-driven)
+## Torrent Scraper (config-driven)
 
 A Playwright-based scraper that logs into a torrent site through a
 real Chromium browser (so Cloudflare and login sessions work
