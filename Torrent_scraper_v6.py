@@ -1,26 +1,11 @@
 """
-Torrent Site Scraper  v6  —  Playwright edition  (site-agnostic / config-driven)
+Torrent Site Scraper  v6  
 ==================================================================================
-This script no longer hardcodes the target site. All site-specific details
-(base URL, API path, query parameter names, category flags, field names,
-response shape, ID range) live in config.json next to this script and are
-loaded once at startup.
-
-Shipped default: config.json is pre-filled for zamunda.rip and works
-out of the box with zero edits — see README.md "Using it as-is".
-
 To point this at a different torrent site with a similar JSON API,
 edit config.json — see README.md "Tweaking the config". No Python
 changes should be needed for sites that expose a comparable
 q / offset / category-flags API shape.
 
-Four modes — choose at startup:
-    [1] Latin search    — aa-zz + keywords + vowel-led 3-char combos
-    [2] Category browse — the category endpoints defined in config.json
-    [3] Cyrillic search — аа-яя combos + vowel-led Cyrillic triples
-                          (Bulgarian-specific; not configurable — see README)
-    [4] ID scrape       — queries every ID in the configured id_range
-                          with all category flags on
 
 All modes share
 ----------------
@@ -28,23 +13,6 @@ All modes share
 * API via page.evaluate() so Cloudflare cookies are automatic
 * Auto-save after every query / category / ID batch
 * Resumable — skips already-completed work on restart
-
-File map
---------
-  Mode 1  checkpoint : zamunda_checkpoint.json
-          output     : zamunda_torrents.json
-
-  Mode 2  reads      : zamunda_checkpoint.json  (never modified)
-          checkpoint : zamunda_category_checkpoint.json
-          output     : zamunda_final.json
-
-  Mode 3  reads      : zamunda_checkpoint.json + zamunda_category_checkpoint.json
-          checkpoint : zamunda_cyrillic_checkpoint.json
-          output     : zamunda_cyrillic_final.json
-
-  Mode 4  reads      : all three checkpoints above  (never modified)
-          checkpoint : zamunda_id_checkpoint.json
-          output     : zamunda_id_final.json
 
 Requirements
 ------------
@@ -54,7 +22,7 @@ Requirements
 Usage
 -----
     python zamunda_scraper_v6.py
-    (then type 1, 2, 3 or 4 when prompted)
+    
 """
 
 import asyncio
