@@ -21,7 +21,7 @@ file, so no Python changes are required for compatible sites.
 Install the Python dependency:
 
 ```
-pip install -r requirements.txt
+pip install playwright
 playwright install chromium
 ```
 
