@@ -1,4 +1,4 @@
-# zArhiv Archive — Local Web App
+# zArhiv Archive - Local Web App
 
 A fast local site to browse, search and manage your torrent archive.
 
