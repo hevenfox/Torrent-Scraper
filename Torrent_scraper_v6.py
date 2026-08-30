@@ -37,9 +37,8 @@ from urllib.parse import urlencode
 from playwright.async_api import async_playwright, Page
 
 
-# ══════════════════════════════════════════════════════════════
+
 #  Config loading
-# ══════════════════════════════════════════════════════════════
 
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
@@ -84,9 +83,7 @@ ID_END                  = CONFIG["id_range"]["end"]
 EXTRA_SEEDS              = CONFIG.get("extra_seeds", [])
 
 
-# ══════════════════════════════════════════════════════════════
-#  Runtime configuration  (not site-specific — safe to tune here)
-# ══════════════════════════════════════════════════════════════
+#  Runtime configuration  (not site-specific — safe to tune)
 
 SEARCH_CHECKPOINT   = "zamunda_checkpoint.json"
 SEARCH_OUTPUT       = "zamunda_torrents.json"
@@ -117,9 +114,8 @@ CYRILLIC      = "абвгдежзийклмнопрстуфхцчшщъьюя"
 CYR_VOWELS    = "аеиоуя"
 
 
-# ══════════════════════════════════════════════════════════════
 #  Query generation
-# ══════════════════════════════════════════════════════════════
+
 
 def generate_latin_queries() -> list[str]:
     """aa-zz combos + EXTRA_SEEDS (from config) + vowel-led 3-char combos."""
@@ -147,9 +143,7 @@ def generate_cyrillic_queries() -> list[str]:
     return combos + triples
 
 
-# ══════════════════════════════════════════════════════════════
 #  Shared data helpers
-# ══════════════════════════════════════════════════════════════
 
 def extract_torrent(item: dict) -> dict:
     """
@@ -188,9 +182,7 @@ def process_items(items: list[dict], seen: set, results: list) -> int:
     return added
 
 
-# ══════════════════════════════════════════════════════════════
-#  Browser-side fetch
-# ══════════════════════════════════════════════════════════════
+#  Browser side fetch
 
 _FETCH_JS = """
 async ({ url, timeoutMs }) => {
@@ -259,9 +251,7 @@ async def fetch_page(page: Page, params: dict) -> list[dict] | None:
     return _unwrap(data)
 
 
-# ══════════════════════════════════════════════════════════════
-#  Login helper
-# ══════════════════════════════════════════════════════════════
+# Login instruct
 
 async def wait_for_login(page: Page) -> None:
     print("\n" + "=" * 56)
@@ -276,9 +266,7 @@ async def wait_for_login(page: Page) -> None:
     print("Session confirmed.\n")
 
 
-# ══════════════════════════════════════════════════════════════
-#  Checkpoint helpers — search (mode 1)
-# ══════════════════════════════════════════════════════════════
+#  Checkpoint search mode 1
 
 def load_search_checkpoint() -> tuple[set, set, list]:
     path = Path(SEARCH_CHECKPOINT)
@@ -303,9 +291,8 @@ def save_search_checkpoint(seen_ids: set, done_queries: set, results: list) -> N
                   f, ensure_ascii=False)
 
 
-# ══════════════════════════════════════════════════════════════
-#  Checkpoint helpers — category (mode 2)
-# ══════════════════════════════════════════════════════════════
+
+#  Checkpoint category mode 2
 
 def _read_checkpoint_ids(path: Path, torrents_key: str) -> tuple[set, list]:
     """Generic helper: read a checkpoint file, return (seen_ids, results)."""
@@ -360,9 +347,7 @@ def save_cat_checkpoint(done_labels: set, new_results: list) -> None:
                    "new_torrents": new_results}, f, ensure_ascii=False)
 
 
-# ══════════════════════════════════════════════════════════════
-#  Checkpoint helpers — Cyrillic (mode 3)
-# ══════════════════════════════════════════════════════════════
+#  Checkpoint Cyrillic mode 3
 
 def load_cyr_checkpoints() -> tuple[set, set, list, list]:
     """
@@ -409,9 +394,8 @@ def save_cyr_checkpoint(done_queries: set, new_results: list) -> None:
                    "new_torrents": new_results}, f, ensure_ascii=False)
 
 
-# ══════════════════════════════════════════════════════════════
-#  Checkpoint helpers — ID scrape (mode 4)
-# ══════════════════════════════════════════════════════════════
+#  Checkpoint ID mode 4
+
 
 def load_id_checkpoints() -> tuple[set, int, list, list]:
     """
@@ -461,9 +445,8 @@ def save_id_checkpoint(last_tried: int, new_results: list) -> None:
                    "new_torrents":  new_results}, f, ensure_ascii=False)
 
 
-# ══════════════════════════════════════════════════════════════
-#  Generic search/query pagination helper
-# ══════════════════════════════════════════════════════════════
+
+#  Generic query pagination
 
 async def scrape_queries(
     page:        Page,
@@ -478,7 +461,6 @@ async def scrape_queries(
     """
     Shared pagination loop for any list of string queries.
     Mutates seen, results, done_queries in place.
-    Calls save_fn(done_queries, results) after each completed query.
     """
     total = len(queries)
     for q_idx, query in enumerate(queries, 1):
@@ -518,9 +500,7 @@ async def scrape_queries(
         print(f"  + '{query}' complete — {new_this_query} new torrents")
 
 
-# ══════════════════════════════════════════════════════════════
-#  Mode 1 — Latin search
-# ══════════════════════════════════════════════════════════════
+#  Mode 1 Latin
 
 async def run_search_scrape(page: Page) -> None:
     queries                      = generate_latin_queries()
@@ -542,9 +522,7 @@ async def run_search_scrape(page: Page) -> None:
     print(f"\n  Saved {len(results):,} unique torrents -> {out.resolve()}")
 
 
-# ══════════════════════════════════════════════════════════════
-#  Mode 2 — Category browse
-# ══════════════════════════════════════════════════════════════
+#  Mode 2 Category
 
 async def run_category_scrape(page: Page) -> None:
     seen, done_labels, old_results, new_results = load_cat_checkpoints()
@@ -601,9 +579,9 @@ async def run_category_scrape(page: Page) -> None:
     print(f"  ({len(old_results):,} from search  +  {len(new_results):,} from categories)")
 
 
-# ══════════════════════════════════════════════════════════════
-#  Mode 3 — Cyrillic search
-# ══════════════════════════════════════════════════════════════
+
+#  Mode 3 Cyrillic
+
 
 async def run_cyrillic_scrape(page: Page) -> None:
     queries                          = generate_cyrillic_queries()
@@ -630,9 +608,8 @@ async def run_cyrillic_scrape(page: Page) -> None:
     print(f"  ({len(base):,} from prev modes  +  {len(all_results) - len(base):,} new from Cyrillic)")
 
 
-# ══════════════════════════════════════════════════════════════
-#  Mode 4 — ID scrape
-# ══════════════════════════════════════════════════════════════
+#  Mode 4 ID
+
 
 async def run_id_scrape(page: Page) -> None:
     seen, last_tried, base_results, new_results = load_id_checkpoints()
@@ -691,10 +668,7 @@ async def run_id_scrape(page: Page) -> None:
     print(f"\n  Saved {len(all_results):,} total torrents -> {out.resolve()}")
     print(f"  ({len(base_results):,} from prev modes  +  {len(new_results):,} new from ID scrape)")
 
-
-# ══════════════════════════════════════════════════════════════
 #  Mode selection
-# ══════════════════════════════════════════════════════════════
 
 def pick_mode() -> int:
     print("  Choose scrape mode:")
@@ -726,9 +700,8 @@ def pick_mode() -> int:
         print("  Please type 1, 2, 3 or 4.")
 
 
-# ══════════════════════════════════════════════════════════════
-#  Entry point
-# ══════════════════════════════════════════════════════════════
+
+#  Entry
 
 async def main() -> None:
     print("=" * 56)
