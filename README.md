@@ -142,7 +142,7 @@ API, edit the fields below — no Python code changes needed.
 "extra_seeds": ["2024", "hd", "bluray", "..."]
 }
 
-Field-by-field:
+## Field-by-field:
 -site_name — display label only, shown in the terminal banner.
 -base_url — the site's root URL. Used both to open the login
 -page and as the prefix for the API endpoint.
