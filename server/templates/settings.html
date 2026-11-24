@@ -7,7 +7,6 @@
     <p data-i18n="settings_sub">Manage your preferences and account</p>
   </div>
 
-  <!-- Appearance -->
   <div class="card" style="margin-bottom:1rem;">
     <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;" data-i18n="section_appearance">Appearance</h3>
     <div class="form-group">
@@ -26,7 +25,6 @@
     </div>
   </div>
 
-  <!-- Security -->
   <div class="card" style="margin-bottom:1rem;">
     <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:1rem;" data-i18n="section_security">Security</h3>
     <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;" data-i18n="pw_hint">Leave blank to keep your current password.</p>
@@ -73,11 +71,9 @@ Object.assign(STRINGS.bg, {
 });
 applyLang(currentLang);
 
-// Pre-fill current values
 document.getElementById("lang-select").value = currentLang;
 document.getElementById("theme-select").value = currentTheme;
 
-// Live preview
 document.getElementById("lang-select").addEventListener("change", function(){
   applyLang(this.value);
 });

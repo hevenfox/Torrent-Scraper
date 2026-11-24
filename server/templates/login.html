@@ -60,7 +60,6 @@ async function doLogin() {
     err.style.display  = "block";
     return;
   }
-  // Sync lang/theme from server prefs
   if (data.language) { localStorage.setItem("lang", data.language); }
   if (data.theme)    { localStorage.setItem("theme", data.theme); }
   location.href = "/";

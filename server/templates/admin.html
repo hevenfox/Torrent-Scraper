@@ -7,14 +7,12 @@
     <p data-i18n="admin_sub">Edit torrents and manage users</p>
   </div>
 
-  <!-- Tabs -->
   <div style="display:flex;gap:0.4rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);padding-bottom:0.6rem;">
     <button class="btn btn-primary btn-sm" onclick="showTab('torrents')" id="tab-torrents" data-i18n="tab_torrents">Torrents</button>
     <button class="btn btn-ghost btn-sm"  onclick="showTab('users')"    id="tab-users"    data-i18n="tab_users">Users</button>
     <button class="btn btn-ghost btn-sm"  onclick="showTab('hidden')"   id="tab-hidden"   data-i18n="tab_hidden">Hidden</button>
   </div>
 
-  <!-- Torrents tab -->
   <div id="tab-content-torrents">
     <div class="card" style="margin-bottom:1rem;padding:1rem;">
       <div style="display:grid;grid-template-columns:1fr auto;gap:0.7rem;align-items:end;">
@@ -30,9 +28,7 @@
     <div id="admin-results"></div>
   </div>
 
-  <!-- Hidden tab -->
   <div id="tab-content-hidden" style="display:none;">
-    <!-- Hide a category -->
     <div class="card" style="margin-bottom:1rem;padding:1rem;">
       <h3 style="font-size:0.88rem;font-weight:700;margin-bottom:0.8rem;" data-i18n="hide_cat_title">Hide a Category</h3>
       <div style="display:grid;grid-template-columns:1fr auto;gap:0.7rem;align-items:end;">
@@ -48,14 +44,12 @@
         <button class="btn btn-danger btn-sm" onclick="hideCategory()" data-i18n="btn_hide_cat">Hide Category</button>
       </div>
     </div>
-    <!-- Currently hidden -->
     <div class="card" style="padding:1rem;">
       <h3 style="font-size:0.88rem;font-weight:700;margin-bottom:0.8rem;" data-i18n="currently_hidden">Currently Hidden</h3>
       <div id="hidden-list">Loading…</div>
     </div>
   </div>
 
-  <!-- Users tab -->
   <div id="tab-content-users" style="display:none;">
     <div class="card" style="padding:0;overflow:hidden;">
       <table style="width:100%;border-collapse:collapse;" id="users-table">
@@ -74,7 +68,6 @@
   </div>
 </div>
 
-<!-- Edit Torrent Modal -->
 <div class="modal-backdrop" id="edit-modal">
   <div class="modal" style="width:min(700px,95vw);">
     <div class="modal-header">
@@ -90,7 +83,6 @@
   </div>
 </div>
 
-<!-- Edit User Modal -->
 <div class="modal-backdrop" id="user-modal">
   <div class="modal" style="width:min(420px,95vw);">
     <div class="modal-header">
@@ -301,7 +293,6 @@ async function resetEdit() {
   }
 }
 
-// ── Users ─────────────────────────────────────────────────────────────────────
 async function loadUsers() {
   const res  = await fetch("/api/admin/users");
   const data = await res.json();
@@ -371,7 +362,6 @@ async function deleteUser() {
   }
 }
 
-// ── Hide / Unhide ─────────────────────────────────────────────────────────────
 
 async function hideTorrent(eid, btn) {
   const res = await fetch(`/api/admin/hide/torrent/${eid}`, {method:"POST"});
@@ -447,7 +437,6 @@ async function loadHidden() {
   el.innerHTML = html;
 }
 
-// Close modals on backdrop click
 document.getElementById("edit-modal").addEventListener("click", function(e){ if(e.target===this) closeEditModal(); });
 document.getElementById("user-modal").addEventListener("click", function(e){ if(e.target===this) closeUserModal(); });
 

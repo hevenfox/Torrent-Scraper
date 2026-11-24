@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container">
 
-  <!-- Header + stats -->
   <div class="page-header" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
     <div>
       <h1 data-i18n="browse_title">Torrent Archive</h1>
@@ -21,7 +20,6 @@
     </div>
   </div>
 
-  <!-- Filters bar -->
   <div class="card" style="margin-bottom:1rem;padding:1rem;">
     <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:0.7rem;align-items:end;flex-wrap:wrap;">
       <div class="form-group" style="margin:0;">
@@ -50,10 +48,8 @@
     </div>
   </div>
 
-  <!-- Results count -->
   <div id="results-info" style="font-size:0.82rem;color:var(--muted);font-family:var(--mono);margin-bottom:0.7rem;"></div>
 
-  <!-- Table -->
   <div class="card" style="padding:0;overflow:hidden;">
     <div style="overflow-x:auto;">
       <table id="torrent-table" style="width:100%;border-collapse:collapse;">
@@ -72,12 +68,10 @@
     </div>
   </div>
 
-  <!-- Pagination -->
   <div id="pagination" style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;"></div>
 
 </div>
 
-<!-- Detail Modal -->
 <div class="modal-backdrop" id="detail-modal">
   <div class="modal">
     <div class="modal-header">
@@ -96,7 +90,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-// Extra i18n strings for browse page
 Object.assign(STRINGS.en, {
   browse_title:"Torrent Archive",
   stats_line:"{0} torrents · {1} categories · {2} BG Audio",
@@ -143,7 +136,6 @@ let currentPage = 1;
 let currentMagnet = "";
 let debounceTimer;
 
-// Load stats
 fetch("/api/stats").then(r=>r.json()).then(d=>{
   const s = STRINGS[currentLang];
   document.getElementById("stats-line").textContent =
@@ -231,7 +223,6 @@ function renderPagination(data) {
 
   html += `<button class="btn btn-ghost btn-sm" ${prev?'':'disabled'} onclick="goPage(${currentPage-1})">←</button>`;
 
-  // Show window of pages
   const win = 5;
   let lo = Math.max(1, currentPage - Math.floor(win/2));
   let hi = Math.min(data.pages, lo + win - 1);
@@ -312,7 +303,6 @@ function escHtml(str) {
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-// Initial load
 doSearch();
 </script>
 {% endblock %}

@@ -65,7 +65,6 @@ button, .btn {
 .btn-danger:hover { filter: brightness(1.1); }
 .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.78rem; }
 
-/* Nav */
 nav {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -103,13 +102,11 @@ nav {
 }
 .nav-user strong { color: var(--accent2); }
 
-/* Layout */
 .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
 .page-header { margin-bottom: 1.5rem; }
 .page-header h1 { font-size: 1.5rem; font-weight: 800; }
 .page-header p { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
 
-/* Cards */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -117,7 +114,6 @@ nav {
   padding: 1.2rem;
 }
 
-/* Forms */
 input, select, textarea {
   font-family: var(--font);
   background: var(--surface2);
@@ -136,7 +132,6 @@ input:focus, select:focus, textarea:focus {
 label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: block; margin-bottom: 0.3rem; }
 .form-group { margin-bottom: 1rem; }
 
-/* Badge */
 .badge {
   display: inline-block;
   font-size: 0.7rem;
@@ -150,7 +145,6 @@ label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: bloc
 .badge-gray { background: var(--surface2); color: var(--muted); }
 .badge-red { background: rgba(240,90,90,0.15); color: var(--danger); }
 
-/* Toast */
 #toast {
   position: fixed;
   bottom: 1.5rem;
@@ -170,7 +164,6 @@ label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: bloc
 #toast.success { border-color: var(--accent2); color: var(--accent2); }
 #toast.error { border-color: var(--danger); color: var(--danger); }
 
-/* Modal */
 .modal-backdrop {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.7);
@@ -197,12 +190,10 @@ label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: bloc
 .modal-close { background: none; border: none; color: var(--muted); font-size: 1.3rem; cursor: pointer; padding: 0; line-height: 1; flex-shrink: 0; }
 .modal-close:hover { color: var(--text); }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* Responsive */
 @media (max-width: 640px) {
   nav { padding: 0 1rem; gap: 0.8rem; }
   .container { padding: 1rem; }
@@ -233,7 +224,6 @@ label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: bloc
 <div id="toast"></div>
 
 <script>
-// ── i18n ──────────────────────────────────────────────────────────────────────
 const STRINGS = {
   en: {
     nav_browse:"Browse", nav_admin:"Admin", nav_settings:"Settings",
@@ -275,7 +265,6 @@ function applyLang(l) {
 applyTheme(currentTheme);
 applyLang(currentLang);
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 let toastTimer;
 function showToast(msg, type="success") {
   const t = document.getElementById("toast");
@@ -285,7 +274,6 @@ function showToast(msg, type="success") {
   toastTimer = setTimeout(() => t.className = "", 3000);
 }
 
-// ── Logout ────────────────────────────────────────────────────────────────────
 async function logout() {
   await fetch("/api/logout", {method:"POST"});
   location.href = "/login";
