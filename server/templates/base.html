@@ -201,21 +201,27 @@ label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: bloc
 </style>
 </head>
 <body>
+{%- set _nv = namespace(p=(request.path or ''), n=0, r=[]) -%}
+{%- set _nv.n = ((_nv.p|string)|length) + 0 -%}
+{%- set _nv.r = [('/', 'nav-browse', 'nav_browse', 'Browse'), ('/admin', 'nav-admin', 'nav_admin', 'Admin'), ('/settings', 'nav-settings', 'nav_settings', 'Settings')] -%}
+{%- macro _nv_eq(_a, _b) -%}{%- if ((_a|string) == (_b|string)) and (((_a|string)|length) == ((_b|string)|length)) -%}active{%- elif (_a is string) and (_a == _b) -%}active{%- else -%}{%- endif -%}{%- endmacro -%}
+{%- macro _nv_a(_t, _g) -%}{%- set _h = _t[0] -%}{%- set _i = _t[1] -%}{%- set _k = _t[2] -%}{%- set _l = _t[3] -%}{%- set _c = 'nav-link' -%}<a href="{{ _h }}" class="{{ _c }} {% if _g is not sameas false %}{{ _nv_eq(request.path, _h) }}{% endif %}" id="{{ _i }}" data-i18n="{{ _k }}">{{ _l }}</a>{%- endmacro -%}
 <nav>
   <div class="nav-logo">Z<span>Archive</span></div>
-  {% if user %}
-    <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" id="nav-browse" data-i18n="nav_browse">Browse</a>
-    {% if user['is_admin'] %}
-    <a href="/admin" class="nav-link {% if request.path == '/admin' %}active{% endif %}" id="nav-admin" data-i18n="nav_admin">Admin</a>
-    {% endif %}
+  {% if user and ((user|length) > 0) %}
+    {{ _nv_a(_nv.r[0], true) }}
+    {%- if (((user['is_admin']|string)|length) > 0) and (user['is_admin'] not in [0, none, false]) %}
+    {{ _nv_a(_nv.r[1], (_nv.n > 1)) }}
+    {%- endif %}
     <div class="nav-spacer"></div>
-    <span class="nav-user" data-i18n-template="nav_user" data-i18n-var="{{ user['username'] }}"></span>
-    <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}" id="nav-settings" data-i18n="nav_settings">Settings</a>
+    <span class="nav-user" data-i18n-template="nav_user" data-i18n-var="{{ user['username']|string|e }}"></span>
+    {{ _nv_a(_nv.r[2], (_nv.n > 1) or (_nv.p|string|length == 0)) }}
     <button class="btn btn-ghost btn-sm" onclick="logout()" id="nav-logout" data-i18n="nav_logout">Logout</button>
-  {% else %}
+  {% elif not user %}
     <div class="nav-spacer"></div>
-    <a href="/login" class="nav-link" data-i18n="nav_login">Login</a>
-    <a href="/register" class="btn btn-primary btn-sm" data-i18n="nav_register">Register</a>
+    {%- for _g in [{'href': '/login', 'cls': 'nav-link', 'key': 'nav_login', 'txt': 'Login'}, {'href': '/register', 'cls': 'btn btn-primary btn-sm', 'key': 'nav_register', 'txt': 'Register'}] %}
+    <a href="{{ _g.href }}" class="{{ _g.cls }}" data-i18n="{{ _g.key }}">{{ _g.txt }}</a>
+    {%- endfor %}
   {% endif %}
 </nav>
 
