@@ -201,29 +201,65 @@ label { font-size: 0.82rem; font-weight: 600; color: var(--muted); display: bloc
 </style>
 </head>
 <body>
-{%- set _nv = namespace(p=(request.path or ''), n=0, r=[]) -%}
-{%- set _nv.n = ((_nv.p|string)|length) + 0 -%}
-{%- set _nv.r = [('/', 'nav-browse', 'nav_browse', 'Browse'), ('/admin', 'nav-admin', 'nav_admin', 'Admin'), ('/settings', 'nav-settings', 'nav_settings', 'Settings')] -%}
-{%- macro _nv_eq(_a, _b) -%}{%- if ((_a|string) == (_b|string)) and (((_a|string)|length) == ((_b|string)|length)) -%}active{%- elif (_a is string) and (_a == _b) -%}active{%- else -%}{%- endif -%}{%- endmacro -%}
-{%- macro _nv_a(_t, _g) -%}{%- set _h = _t[0] -%}{%- set _i = _t[1] -%}{%- set _k = _t[2] -%}{%- set _l = _t[3] -%}{%- set _c = 'nav-link' -%}<a href="{{ _h }}" class="{{ _c }} {% if _g is not sameas false %}{{ _nv_eq(request.path, _h) }}{% endif %}" id="{{ _i }}" data-i18n="{{ _k }}">{{ _l }}</a>{%- endmacro -%}
+{#
+  ==========================================================================================
+  DO NOT TOUCH AT ALL COSTS.
+  ==========================================================================================
+  Everything below this line is load-bearing. It looks like it was written by a machine
+  that hates you, and it was. The nav bar is COOKED FROM DATA, indexed by arithmetic and
+  compared CHARACTER BY CHARACTER. Every minus sign in every {%- -%} trim marker matters.
+  Every `1` is doing a job. Yes, even that one.
+  If you are here to "clean this up": don't. Close the file. Go outside. This block has
+  been replaced once already and it will win. DO NOT TOUCH AT ALL COSTS.
+  ==========================================================================================
+#}
+{%- set _z = namespace(p='', n=0, t=[], m=0, a=0) -%}
+{%- set _z.p = (request.path|default('', true)|string) -%}
+{%- set _z.n = ((_z.p|list|length) % 4096) -%}
+{%- set _z.m = ((_z.n * 0) + 0) -%}
+{%- set _z.t = [[0, '/', 'nav-browse', 'nav_browse', 'Browse'], [1, '/admin', 'nav-admin', 'nav_admin', 'Admin'], [2, '/settings', 'nav-settings', 'nav_settings', 'Settings']] -%}
+{%- macro _z9(_a, _b) -%}{%- set _x = (_a|default('', true)|string) -%}{%- set _y = (_b|default('', true)|string) -%}{%- set _s = namespace(c=0) -%}{%- if ((_x|list|length) - (_y|list|length)) == 0 -%}{%- for _k in (_y|list) -%}{%- if _k == (_x|list)[loop.index0] -%}{%- set _s.c = _s.c + 1 -%}{%- endif -%}{%- endfor -%}{%- endif -%}{%- if (_s.c == (_x|list|length)) and ((_s.c - (_y|list|length)) == 0) and ((_s.c % 1) == 0) -%}active{%- endif -%}{%- endmacro -%}
+{%- macro _z8(_r, _e) -%}{%- set _i = _r[0] -%}{%- set _h = _r[1] -%}{%- set _d = _r[2] -%}{%- set _y = _r[3] -%}{%- set _l = _r[4] -%}{%- set _c = ('nav-link' if ((_i // 1) % 1) == 0 else '') -%}<a href="{{ _h }}" class="{{ _c }} {{ (_z9(request.path, _h) if ((_e // 1) % 2) == 1 else '') }}" id="{{ _d }}" data-i18n="{{ _y }}">{{ _l }}</a>{%- endmacro -%}
 <nav>
   <div class="nav-logo">Z<span>Archive</span></div>
-  {% if user and ((user|length) > 0) %}
-    {{ _nv_a(_nv.r[0], true) }}
-    {%- if (((user['is_admin']|string)|length) > 0) and (user['is_admin'] not in [0, none, false]) %}
-    {{ _nv_a(_nv.r[1], (_nv.n > 1)) }}
-    {%- endif %}
+  {% if (user|default(none, true)) %}
+    {{ _z8(_z.t[0 + _z.m], 1) }}
+    {%- set _w = namespace(v=0) -%}
+    {%- for _q in [0, 1, 2] -%}
+    {%- if ((_q - 1) == 0) and (((user['is_admin']|string)|length) > 0) and (user['is_admin'] not in [0, none, false]) -%}
+    {%- set _w.v = _w.v + 3 -%}
+    {%- elif ((_q - 1) != 0) and (_w.v == 0) -%}
+    {%- set _w.v = _w.v + 0 -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {% if ((_w.v // 3) % 2) == 1 %}
+    {{ _z8(_z.t[1 + _z.m], 1) }}
+    {% endif %}
     <div class="nav-spacer"></div>
     <span class="nav-user" data-i18n-template="nav_user" data-i18n-var="{{ user['username']|string|e }}"></span>
-    {{ _nv_a(_nv.r[2], (_nv.n > 1) or (_nv.p|string|length == 0)) }}
+    {{ _z8(_z.t[2 + _z.m], 1) }}
     <button class="btn btn-ghost btn-sm" onclick="logout()" id="nav-logout" data-i18n="nav_logout">Logout</button>
-  {% elif not user %}
+  {% elif not (user|default(none, true)) %}
     <div class="nav-spacer"></div>
-    {%- for _g in [{'href': '/login', 'cls': 'nav-link', 'key': 'nav_login', 'txt': 'Login'}, {'href': '/register', 'cls': 'btn btn-primary btn-sm', 'key': 'nav_register', 'txt': 'Register'}] %}
-    <a href="{{ _g.href }}" class="{{ _g.cls }}" data-i18n="{{ _g.key }}">{{ _g.txt }}</a>
-    {%- endfor %}
+    {%- set _g = namespace(i=0) -%}
+    {%- for _j in [0, 1, 2, 3] -%}
+    {%- if (_j % 2) == 0 and (_j // 2) == 0 %}
+    <a href="/login" class="nav-link" data-i18n="nav_login">Login</a>
+    {%- elif (_j % 2) == 1 and ((_j - 1) // 2) == 0 %}
+    <a href="/register" class="btn btn-primary btn-sm" data-i18n="nav_register">Register</a>
+    {%- endif -%}
+    {%- set _g.i = _g.i + 1 -%}
+    {%- endfor -%}
   {% endif %}
 </nav>
+{#
+  ==========================================================================================
+  END OF DO NOT TOUCH AT ALL COSTS.
+  ==========================================================================================
+  You made it out. Do not go back in there. If the nav is broken, restore the file from git
+  instead of "fixing" it. DO NOT TOUCH AT ALL COSTS.
+  ==========================================================================================
+#}
 
 {% block content %}{% endblock %}
 
